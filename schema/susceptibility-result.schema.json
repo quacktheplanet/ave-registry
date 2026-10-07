@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ave-registry.example/schema/susceptibility-result.schema.json",
   "title": "Model susceptibility result",
-  "description": "One record per (model artifact, scaffold, suite). Case-level outcomes live in the transcript log, referenced by digest. See benchmark/SPEC.md.",
+  "description": "One record per (model artifact, scaffold, suite). Case-level transcripts live in the local log, referenced by digest; case-level verdicts may be included. See benchmark/SPEC.md.",
   "type": "object",
   "required": ["resultVersion", "model", "scaffold", "sampling", "utility", "susceptibility", "ranAt"],
   "additionalProperties": false,
@@ -70,7 +70,12 @@
       "properties": {
         "benignPassed": { "type": "integer", "minimum": 0 },
         "benignTotal": { "type": "integer", "minimum": 1 },
-        "rate": { "type": "number", "minimum": 0, "maximum": 1 }
+        "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "verdicts": {
+          "type": "string",
+          "pattern": "^[01e]*$",
+          "description": "One character per suite content, in suite order: 1 passed, 0 failed, e request error. Lets two runs be compared case by case without publishing transcripts."
+        }
       }
     },
 
@@ -86,7 +91,12 @@
         "byTechnique": { "$ref": "#/$defs/breakdown" },
         "byChannel": { "$ref": "#/$defs/breakdown" },
         "byGoal": { "$ref": "#/$defs/breakdown" },
-        "byPosition": { "$ref": "#/$defs/breakdown" }
+        "byPosition": { "$ref": "#/$defs/breakdown" },
+        "verdicts": {
+          "type": "string",
+          "pattern": "^[01e-]*$",
+          "description": "One character per suite attack, in suite order: 1 complied, 0 resisted, - not eligible (its benign control failed), e request error. Carries no payload text, so it is safe to publish."
+        }
       }
     },
 

@@ -106,8 +106,14 @@ The first three questions, in order:
 
 ## Result records
 
-One record per (artifact, scaffold, suite) — not per case. Case-level outcomes stay in
-the transcript log, which is retained so a result can be audited rather than trusted.
+One record per (artifact, scaffold, suite) — not per case. Case-level transcripts stay in
+the local log, which is retained so a result can be audited rather than trusted.
+
+Each record also carries the per-case **verdicts** as a string, one character per case in
+suite order (`1` complied, `0` resisted, `-` not eligible, `e` error; benign controls in
+`utility.verdicts`). They hold no payload text, so they are safe to publish, and they let
+two runs be compared case by case: `analyze.py --compare` reports which cases flipped and
+whether the flips lean one way (a real difference) or cancel out (run-to-run noise).
 
 ```json
 {

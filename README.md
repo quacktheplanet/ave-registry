@@ -127,6 +127,17 @@ pip install jsonschema && python tools/validate.py        # schema + registry + 
 python -m unittest discover tests
 ```
 
+Measuring a model's susceptibility is one command. It downloads the GGUF, checks its hash
+against the one HuggingFace publishes, runs the suite under the measurement scaffold and
+both calibration controls, and writes the results:
+
+```
+python benchmark/run.py hf:bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf \
+    --base-model llama-3.1-8b-instruct            # add --get-llama if llama-server isn't installed
+python benchmark/analyze.py                         # every result, calibration first
+python benchmark/analyze.py --compare A.json B.json # two runs, case by case
+```
+
 `audit.py` needs only the Python standard library. There's no lockfile emitter yet; until
 there is, locks are written by hand against
 [`schema/agent-lock.schema.json`](schema/agent-lock.schema.json), and the files in
