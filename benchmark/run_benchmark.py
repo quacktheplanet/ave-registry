@@ -61,12 +61,12 @@ STANCES = {
 
 # ── llama-server lifecycle ───────────────────────────────────────────────────
 
-def start_server(llama_bin: Path, model_path: Path, port: int, ngl: int, ctx: int):
+def start_server(llama_bin: Path, model_path: Path, port: int, ngl: int, ctx: int, extra=()):
     exe = llama_bin / "llama-server.exe"
     if not exe.exists():
         exe = llama_bin / "llama-server"
     cmd = [str(exe), "-m", str(model_path), "--port", str(port), "--host", "127.0.0.1",
-           "-ngl", str(ngl), "-c", str(ctx), "--jinja", "--no-warmup", "-t", "8"]
+           "-ngl", str(ngl), "-c", str(ctx), "--jinja", "--no-warmup", "-t", "8", *extra]
     proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(240):
         if proc.poll() is not None:
@@ -90,12 +90,18 @@ def stop_server(proc):
         proc.wait(timeout=10)
 
 
+# Extra request fields for every chat call; run.py --deterministic sets
+# {"cache_prompt": False} (with one server slot) so prompt-cache reuse and
+# batching can't change the arithmetic from one run to the next.
+CHAT_EXTRA: dict = {}
+
+
 def chat(port: int, messages: list, seed: int) -> dict:
     # Tools are NOT sent: the suite uses a text JSON protocol. llama.cpp b11057
     # rejects Llama 3.1's multi-call native output, which would score as "did
     # not call the tool" and, if it varied by quant, corrupt the comparison.
     body = json.dumps({"messages": messages, "temperature": 0.0, "top_p": 1.0,
-                       "seed": seed, "max_tokens": 512}).encode()
+                       "seed": seed, "max_tokens": 512, **CHAT_EXTRA}).encode()
     req = urllib.request.Request(f"http://127.0.0.1:{port}/v1/chat/completions",
                                  data=body, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as r:
@@ -204,12 +210,18 @@ def server_exe(llama_bin) -> Path:
 
 
 def detect_runner(exe: Path) -> str:
-    """'llama.cpp b6923' from `llama-server --version`, or 'llama.cpp (unknown build)'."""
+    """'llama.cpp b6923 (abc1234)' from `llama-server --version`. Builds from a
+    shallow clone report build 1, so then only the commit identifies them."""
     try:
         out = subprocess.run([str(exe), "--version"], capture_output=True, text=True, timeout=30)
-        m = re.search(r"version:\s*(\d+)", (out.stdout or "") + (out.stderr or ""))
+        text = (out.stdout or "") + (out.stderr or "")
+        m = re.search(r"build (\d+), commit ([0-9a-f]+)", text)
         if m:
-            return f"llama.cpp b{m.group(1)}"
+            build, commit = int(m.group(1)), m.group(2)
+            return f"llama.cpp b{build} ({commit})" if build > 100 else f"llama.cpp commit {commit}"
+        m = re.search(r"version:\s*(\d+)\s*\(([0-9a-f]+)\)", text)
+        if m:
+            return f"llama.cpp b{m.group(1)} ({m.group(2)})"
     except Exception:
         pass
     return "llama.cpp (unknown build)"
@@ -334,7 +346,8 @@ def write_result(*, suite: dict, stance: str, run: dict, model: dict, seed: int,
         **({"ranBy": ran_by} if ran_by else {}),
         "ranAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "transcriptDigest": tr_digest,
-        "notes": f"stance={stance}. Elapsed {elapsed:.0f}s. {run['errors']} request error(s).",
+        "notes": f"stance={stance}. Elapsed {elapsed:.0f}s. {run['errors']} request error(s)."
+                 + (" Deterministic: one server slot, no prompt cache." if CHAT_EXTRA.get("cache_prompt") is False else ""),
     }
     path = out_dir / f"{stem}.json"
     path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

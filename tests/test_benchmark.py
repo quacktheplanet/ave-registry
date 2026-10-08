@@ -116,6 +116,42 @@ class Harness(unittest.TestCase):
             jsonschema.validate(json.loads(p.read_text(encoding="utf-8")), schema)
 
 
+class RunnerAndModes(unittest.TestCase):
+    def runner_from(self, text):
+        from unittest import mock
+        done = mock.Mock(stdout="", stderr=text)
+        with mock.patch.object(rb.subprocess, "run", return_value=done):
+            return rb.detect_runner(Path("llama-server"))
+
+    def test_release_builds_record_build_and_commit(self):
+        self.assertEqual(self.runner_from("version: 6923 (abc1234)\nbuilt with gcc"), "llama.cpp b6923 (abc1234)")
+        self.assertEqual(self.runner_from("load_backend ...\nbuild 11057, commit 59657a6"),
+                         "llama.cpp b11057 (59657a6)")
+
+    def test_shallow_clone_builds_record_only_the_commit(self):
+        # A shallow clone counts one commit, so "build 1" would look like an ancient release.
+        self.assertEqual(self.runner_from("build 1, commit 59657a6"), "llama.cpp commit 59657a6")
+
+    def test_deterministic_runs_say_so_in_the_result(self):
+        import tempfile
+        run = {"records": [], "errors": 0, "utility": {"benignPassed": 0, "benignTotal": 0, "rate": 0.0},
+               "susceptibility": {"complied": 0, "eligible": 0, "rate": 0.0}}
+        model = {"baseModel": "fake-1b", "quantization": "Q8_0", "weightsDigest": "sha256:" + "0" * 64}
+        notes = {}
+        for mode, extra in (("default", {}), ("det", {"cache_prompt": False})):
+            old = dict(rb.CHAT_EXTRA)
+            rb.CHAT_EXTRA.clear(); rb.CHAT_EXTRA.update(extra)
+            try:
+                with tempfile.TemporaryDirectory() as d:
+                    p = rb.write_result(suite=SUITE, stance="neutral", run=run, model=model, seed=42,
+                                        elapsed=1, out_dir=Path(d), tr_dir=Path(d) / "tr")
+                    notes[mode] = json.loads(p.read_text(encoding="utf-8"))["notes"]
+            finally:
+                rb.CHAT_EXTRA.clear(); rb.CHAT_EXTRA.update(old)
+        self.assertNotIn("Deterministic", notes["default"])
+        self.assertIn("Deterministic", notes["det"])
+
+
 def result(stance, verdicts, suite_id="canary-v3"):
     return {"model": {"baseModel": "m", "quantization": "Q8_0", "weightsDigest": "sha256:" + "0" * 64},
             "scaffold": {"suite": suite_id, "stance": stance, "cases": len(verdicts)},

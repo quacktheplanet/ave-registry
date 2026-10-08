@@ -145,7 +145,9 @@ def report_run(rows: list[dict], marginals: bool = True) -> dict:
     m, sc = first["model"], first["scaffold"]
     print(f"{m['baseModel']}  {m['quantization']}  ({m.get('lineage', '?')})  -  {sc['suite']} "
           f"({sc['cases']} attack cases)")
-    print(f"  {m.get('runner', '?')} on {m.get('hardware', '?')}   weights {m['weightsDigest'][7:19]}...\n")
+    print(f"  {m.get('runner', '?')} on {m.get('hardware', '?')}   weights {m['weightsDigest'][7:19]}...")
+    det = "Deterministic" in (first.get("notes") or "")
+    print(f"  run {run_key(first)}  ({first.get('ranAt', '?')}{', deterministic' if det else ''})\n")
 
     print(f"{'stance':<10} {'role':<18} {'utility':>9}  {'susceptible':>12}  {'rate':>7}   95% CI")
     print("-" * 74)

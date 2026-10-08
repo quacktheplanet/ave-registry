@@ -217,9 +217,12 @@ def main() -> int:
     ap.add_argument("--get-llama", action="store_true",
                     help="download the latest official llama.cpp release if llama-server isn't found")
     ap.add_argument("--cpu", action="store_true", help="run on the CPU only (no GPU offload)")
+    ap.add_argument("--deterministic", action="store_true",
+                    help="one server slot and no prompt-cache reuse, so repeat runs can match case by case")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--port", type=int, default=8177)
     ap.add_argument("--ctx", type=int, default=8192)
+    ap.add_argument("--runner", help="recorded runner, e.g. 'llama.cpp b11057' (default: detected)")
     ap.add_argument("--tag", help="suffix for the result file names, to keep repeat runs apart")
     ap.add_argument("--ran-by", help="your handle, recorded in the result")
     ap.add_argument("--out-dir", default=str(HERE / "results"))
@@ -241,7 +244,7 @@ def main() -> int:
         if not args.get_llama:
             raise SystemExit(f"{e}\n(or add --get-llama to download an official llama.cpp release)")
         exe = rb.server_exe(get_llama(gpu=not args.cpu))
-    runner = rb.detect_runner(exe)
+    runner = args.runner or rb.detect_runner(exe)
     hardware = rb.detect_hardware(ngl)
     print(f"  {runner} on {hardware}")
 
@@ -252,7 +255,13 @@ def main() -> int:
              "runner": runner, "hardware": hardware, "_tag": args.tag}
     print(f"[3/3] {suite['suiteId']}: {len(suite['attacks'])} attacks x {len(stances)} stance(s)  "
           f"{base} {quant} ({args.lineage})")
-    proc = rb.start_server(exe.parent, path, args.port, ngl, args.ctx)
+    # A GPU build still offloads big matrix multiplies to the GPU at -ngl 0;
+    # --device none keeps a CPU run on the CPU.
+    extra = ["--device", "none"] if args.cpu else []
+    if args.deterministic:
+        extra += ["-np", "1"]
+        rb.CHAT_EXTRA["cache_prompt"] = False
+    proc = rb.start_server(exe.parent, path, args.port, ngl, args.ctx, extra=extra)
     written = []
     try:
         for stance in stances:
