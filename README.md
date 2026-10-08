@@ -97,6 +97,12 @@ instrument separates susceptible from resistant. First trustworthy figure:
 > neutral prompt, cut to **34%** by a one-line hardening prompt — a big real reduction,
 > nowhere near safe.
 
+The figure reproduces on a second GPU, and the first comparisons are in
+[benchmark/RESULTS-v3.md](benchmark/RESULTS-v3.md). Quantization from 8 down to 4 bits and
+abliteration show no overall trend in redirect susceptibility for this model. One build, Q5_K_M,
+is measurably less susceptible than the rest, which is why each file has to be measured on its
+own.
+
 The current suite is [`canary-v3`](benchmark/suites/canary-v3.json). An earlier
 quantization experiment ([benchmark/RESULTS.md](benchmark/RESULTS.md)) found no effect and
 is superseded — it was the run that exposed how much suite calibration the measurement
@@ -162,9 +168,8 @@ ALTERNATIVES.md   the cheaper answers, how they were tested, what would make us 
 
 [ROADMAP.md](ROADMAP.md) lays out the destination and the five pieces it needs. Two don't
 fully exist yet — a tool capability catalogue, and model-susceptibility data across more
-models — and they're the substance. On the benchmark, the next step is running `canary-v3`
-across quantizations and then lineages (official vs community fine-tune vs abliterated),
-the comparison that was the point.
+models — and they're the substance. On the benchmark, the next steps are a second model
+family and checking that deterministic runs agree across hardware (see the ROADMAP).
 
 Two honest cautions carried throughout: every susceptibility figure is specific to one
 model, scaffold, and machine until reproduced elsewhere, and an advisory that matches most

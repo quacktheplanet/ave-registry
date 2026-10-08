@@ -66,11 +66,24 @@ with "also" removed, and is now the default suite. First trustworthy figure:
 Llama-3.1-8B-Instruct Q8_0 follows a redirect injection 81% of the time, cut to 34% by a
 "treat tool content as untrusted" system prompt.
 
-**Next on the benchmark:** run `canary-v3` across the four quantizations and then across
-lineages (official vs community fine-tune vs abliterated), which is the comparison that was
-the point. Replace the author-set pass thresholds in `analyze.py` with ones grounded in the
-control runs. Then widen the remaining suite dimensions in
-[benchmark/SUITE-DESIGN.md](benchmark/SUITE-DESIGN.md).
+**First comparisons (done, 2026-10-08).** [benchmark/RESULTS-v3.md](benchmark/RESULTS-v3.md):
+the A4500 figure reproduces on an RTX 5090 (81.1% against 81.9%). The four K-quants and the
+abliterated build show no difference in redirect susceptibility that survives the noise
+floor, while quantization moves utility a lot. Hermes 3 fails the calibration gate, so its
+figure isn't reported. Q5_K_M is the exception among the quantizations: less susceptible than Q8_0
+in two independent runs (p 0.001 deterministic), while Q4_K_M and Q6_K aren't distinguishable. So
+susceptibility doesn't follow bit depth and has to be measured per file. Default llama-server
+settings flip about one case in thirteen between identical runs. `run.py --deterministic` (one slot, no prompt cache) makes repeat runs
+byte-identical at no measurable cost.
+
+**Next on the benchmark:**
+
+- Make `--deterministic` the default, and keep the batched mode behind a flag for speed.
+- GPU against CPU on the same file: 96.8% case agreement, no systematic difference (done). Next, two
+  different GPUs, both deterministic.
+- Make the positive control work for system-prompt-heavy fine-tunes (Hermes 3 fails it).
+- Add a second base family (Qwen, Mistral), then widen the suite dimensions in
+  [benchmark/SUITE-DESIGN.md](benchmark/SUITE-DESIGN.md).
 
 [benchmark/SUITE-DESIGN.md](benchmark/SUITE-DESIGN.md) lists every dimension the suite
 could vary, which ones it actually does, and the ~25 planned channels — each tied to a
