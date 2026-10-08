@@ -1,0 +1,47 @@
+{
+  "lockfileVersion": 1,
+  "label": "identities-only-emitter",
+  "generated": "2026-10-08T12:00:00Z",
+  "harness": {
+    "name": "claude-desktop",
+    "version": "0.13.11",
+    "settings": {
+      "toolApproval": "ask-once",
+      "configWriteApproval": "ask",
+      "toolDefinitionPinning": false
+    }
+  },
+  "tools": [
+    {
+      "name": "whatsapp",
+      "source": "pkg:github/lharries/whatsapp-mcp",
+      "transport": "mcp-stdio",
+      "pinned": false
+    },
+    {
+      "name": "postmark",
+      "source": "pkg:npm/postmark-mcp",
+      "version": "1.0.15",
+      "transport": "mcp-stdio",
+      "pinned": true
+    },
+    {
+      "name": "git",
+      "source": "pkg:pypi/mcp-server-git",
+      "version": "2025.12.18",
+      "transport": "mcp-stdio",
+      "pinned": true
+    },
+    {
+      "name": "filesystem",
+      "source": "pkg:npm/@modelcontextprotocol/server-filesystem",
+      "version": "2025.8.21",
+      "transport": "mcp-stdio",
+      "pinned": true
+    }
+  ],
+  "runtime": {
+    "sandbox": "none",
+    "networkPolicy": "allow-all"
+  }
+}

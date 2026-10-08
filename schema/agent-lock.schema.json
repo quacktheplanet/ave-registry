@@ -109,6 +109,7 @@
         "pinned": { "type": "boolean", "description": "True if the tool is pinned to an exact version or content hash." },
         "integrity": { "type": "string", "description": "Hash of the tool's definitions as approved." },
         "capabilities": {
+          "description": "A complete statement: listed capabilities are present, unlisted ones absent. Omit it when not known, and audit resolves each capability from the capability catalogue by `source` and `version`; see SCHEMA.md.",
           "type": "array",
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/capability" }

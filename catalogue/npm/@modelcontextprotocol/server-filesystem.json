@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:npm/@modelcontextprotocol/server-filesystem",
+  "title": "Filesystem MCP server (reference implementation)",
+  "reviewed": "2026-10-08",
+  "summary": "The reference Filesystem MCP server, as identified in AVE-2026-0005. The sources establish only that it writes files.",
+  "claims": [
+    {
+      "capability": "writes-filesystem",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://www.theregister.com/2026/01/20/anthropic_prompt_injection_flaws/",
+          "note": "The chain uses the Filesystem MCP server to write a script and to write to Git's internal config files."
+        },
+        {
+          "url": "https://thehackernews.com/2026/01/three-flaws-in-anthropic-mcp-git-server.html",
+          "note": "The Filesystem MCP server is used to write to a .git/config file."
+        }
+      ]
+    }
+  ],
+  "unknown": [
+    {
+      "capability": "reads-private-data",
+      "note": "It can read files, but whether they are private depends on the directories it is granted; the sources do not describe the grants."
+    },
+    {
+      "capability": "writes-agent-config",
+      "note": "Only if the granted directories include the agent's own configuration. Not established by the sources."
+    }
+  ],
+  "advisories": ["AVE-2026-0005"]
+}

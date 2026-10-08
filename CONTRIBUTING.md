@@ -37,6 +37,28 @@ If your finding cannot be expressed without a new clause type, capability, or se
 key, open an issue first. The vocabularies grow only when a record requires it, and each
 addition needs to be general rather than shaped around one finding.
 
+## Adding a catalogue entry
+
+A wrong capability claim is worse than a missing one: a false "present" lights up locks
+it shouldn't, and a false "absent" clears locks it shouldn't. An entry merges when:
+
+- [ ] **Every claim has evidence** — a public URL and a note saying what it shows. A
+      capability you couldn't establish goes in `unknown` with the reason, not in a claim.
+- [ ] **Identity is established.** The source names this package, or an advisory citing
+      the source does. A write-up about "a Slack MCP server" is not evidence about a
+      particular Slack package.
+- [ ] **Configuration is explicit.** If the capability depends on a grant (read-only
+      mode, credential role), the claim says so in `when`. Never claim a capability
+      unconditionally that a documented setting removes.
+- [ ] **Capabilities, not bugs.** What a vulnerable version can be tricked into belongs in
+      an advisory.
+- [ ] **`present: false` only with the strongest evidence,** since it is the one claim that
+      can clear a match.
+
+Put it at `catalogue/<purl type>/<namespace>/<name>.json`, write it against
+`schema/capability-catalogue.schema.json`, and run `python tools/validate.py` and
+`python -m unittest discover tests`.
+
 ## Identifiers
 
 Permanent from the first tagged release: never reused, never renumbered. A withdrawn

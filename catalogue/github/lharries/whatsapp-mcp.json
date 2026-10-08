@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:github/lharries/whatsapp-mcp",
+  "title": "WhatsApp MCP server (lharries/whatsapp-mcp)",
+  "reviewed": "2026-10-08",
+  "summary": "A community MCP server for a personal WhatsApp account, identified by repository in the cited write-up. Its ordinary function covers all three legs of the pattern behind most of the registry: it returns messages strangers can send, reads the user's chat history, and sends messages.",
+  "claims": [
+    {
+      "capability": "ingests-untrusted-content",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://invariantlabs.ai/blog/whatsapp-mcp-exploited",
+          "note": "Anyone who has the user's number can send a message, and it shows up in the result of the server's list_chats tool."
+        }
+      ]
+    },
+    {
+      "capability": "reads-private-data",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://invariantlabs.ai/blog/whatsapp-mcp-exploited",
+          "note": "The server lets the agent check messages and retrieve chat history; the write-up describes the user's entire chat history being exfiltrated through it."
+        }
+      ]
+    },
+    {
+      "capability": "external-egress",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://invariantlabs.ai/blog/whatsapp-mcp-exploited",
+          "note": "The server lets the agent send WhatsApp messages; in the write-up the recipient is redirected to an attacker-controlled number."
+        }
+      ]
+    }
+  ],
+  "advisories": ["AVE-2026-0003"]
+}

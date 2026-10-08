@@ -20,17 +20,17 @@ command, offline, and gets an answer in under a minute. A researcher who publish
 agent exploit files a record that makes the finding checkable rather than just readable —
 the way a package vulnerability gets a CVE.
 
-That requires five pieces. Three exist in draft, two don't exist at all.
+That requires five pieces. Three exist in draft; the two datasets have only been started.
 
 | Piece | What it does | Status |
 | --- | --- | --- |
 | **`agent.lock`** | A generated record of exactly what a deployment is made of: harness, version, tools, grants, approval settings, runtime. Pins exact values, holds no prompt text, safe to share. | Schema drafted. Nothing emits one yet — locks are written by hand. |
 | **Advisories** | Machine-matchable records of exploitable configurations, each a predicate over lockfiles, each with a permanent identifier. | Format v0.1. 20 records, all from cited public write-ups. |
-| **Capability catalogue** | Maps a tool to what it can *do* — read untrusted content, reach the network, execute code. | **Does not exist.** The largest open piece. |
+| **Capability catalogue** | Maps a tool to what it can *do* — read untrusted content, reach the network, execute code. | **Started.** 8 tools, 9 sourced claims, most capabilities still unknown. The largest open piece. |
 | **Susceptibility data** | Maps a pinned model artifact to how readily it obeys injected instructions. Aimed at quantized builds and community fine-tunes. | Harness works. Instrument not yet calibrated. |
 | **`agent-audit`** | Joins a lockfile to the registry, locally. Nothing leaves the machine. | Works. Three-valued, so an incomplete lock reads as *maybe*, never as safe. |
 
-The two missing datasets are the substance. The registry itself is thin — a few hundred
+The two datasets are the substance. The registry itself is thin — a few hundred
 lines of schema and a matcher. What makes it useful is the reference data underneath, and
 that's where the work is.
 
@@ -102,10 +102,38 @@ inference identical across different GPUs. Until the normal spread between two g
 runs is known, a re-run can't confirm or refute anything — ordinary variance looks like
 fabrication and vice versa. This needs two or three *different* machines, not fast ones.
 
-**Start the capability catalogue.** Independent of all the above and not blocked by it.
+**Grow the capability catalogue.** Independent of all the above and not blocked by it.
 Tool capabilities can't be read from a manifest; they're a judgement that has to be
 recorded per tool. The configuration-native advisories — the ones that justify the whole
 project — depend on it.
+
+It is now started. `catalogue/` has one entry per tool, keyed by purl, and `audit.py`
+fills in the capabilities a lock leaves out; see [SCHEMA.md](SCHEMA.md#capability-catalogue).
+
+*What's in it:* eight tools, every one named in an advisory or an example lock and
+identifiable by purl, with nine claims between them, each sourced only from a write-up an advisory already
+cites. The three tools behind the configuration-native records are in it (GitHub MCP,
+Supabase MCP, WhatsApp MCP), but only WhatsApp's entry settles all three legs of the
+untrusted-content / private-data / egress pattern. Two entries (the Slack reference
+server, `mcp-remote`) record no claims at all, on purpose — for Slack the sources never
+name the package, and `mcp-remote` is a proxy whose capabilities are those of whatever it
+connects to.
+
+*What it isn't yet:*
+
+- **Not broad.** Nothing outside the registry's own tools, and most capabilities of the
+  tools it has are recorded as unknown, with the reason.
+- **Not independently reviewed.** Same author as the advisories, same sitting.
+- **Sourced from attack write-ups, not tool documentation.** Those establish what an
+  attack used, rarely what a tool can't do. There are no `present: false` claims yet, so
+  today the catalogue can turn a MAYBE into a match but never into a clear.
+- **Limited by the grant vocabulary.** Some capabilities hinge on things a lock doesn't
+  record: whether a GitHub token reaches private repositories or can write to a public
+  one, whether a database holds rows outsiders wrote. Those stay unknown until the lock
+  can say them.
+
+Next for it: source claims for the same tools from their own documentation, and decide
+whether the grant conventions need repository visibility.
 
 ## Later
 
@@ -113,8 +141,9 @@ project — depend on it.
 findings were ordinary package bugs. Source those from CVE/OSV automatically and spend
 human review on configurations, which nothing else covers.
 
-**A lockfile emitter**, once the capability catalogue exists — a lock without capabilities
-can't match the advisories that matter. The realistic path is a wrapper that observes a
+**A lockfile emitter**, once the capability catalogue covers the tools people actually run —
+a lock without capabilities can't match the advisories that matter, and today the
+catalogue has claims for six tools. The realistic path is a wrapper that observes a
 run without the harness cooperating, since harness maintainers have no reason to adopt
 this until the registry has value.
 

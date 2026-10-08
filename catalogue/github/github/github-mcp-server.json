@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:github/github/github-mcp-server",
+  "title": "GitHub MCP server (github/github-mcp-server)",
+  "reviewed": "2026-10-08",
+  "summary": "GitHub's official MCP server. The one capability the cited source establishes for every configuration is reading issues in public repositories, which anyone can write. Whether it can also read private data or write somewhere public depends on what the token reaches, and a lock's grants do not record that today.",
+  "claims": [
+    {
+      "capability": "ingests-untrusted-content",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://invariantlabs.ai/blog/mcp-github-vulnerability",
+          "note": "The agent fetches issues from a public repository through the server and is injected by an issue an outsider wrote."
+        }
+      ]
+    }
+  ],
+  "unknown": [
+    {
+      "capability": "reads-private-data",
+      "note": "The source shows the server pulling private repository data into context, but only because the token covered private repositories. repoScope records how many repositories a token reaches, not whether any are private, so this cannot be decided from a lock."
+    },
+    {
+      "capability": "external-egress",
+      "note": "The source's channel is a pull request the agent opens in a public repository. That needs a token with write access to a public repository; neither the write access nor the visibility is recorded consistently enough in a lock to decide it."
+    }
+  ],
+  "advisories": ["AVE-2026-0001"]
+}

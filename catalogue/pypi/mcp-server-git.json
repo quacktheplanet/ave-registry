@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:pypi/mcp-server-git",
+  "title": "Git MCP server (reference implementation)",
+  "reviewed": "2026-10-08",
+  "summary": "The reference Git MCP server. The sources establish that it manipulates repositories on disk. The file access and code execution in AVE-2026-0005 come from flaws fixed in 2025.12.18; they are vulnerabilities recorded in that advisory, not capabilities, and are not recorded here.",
+  "claims": [
+    {
+      "capability": "writes-filesystem",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://thehackernews.com/2026/01/three-flaws-in-anthropic-mcp-git-server.html",
+          "note": "Provides tools to read, search, and manipulate Git repositories; git_init creates repositories."
+        }
+      ]
+    }
+  ],
+  "unknown": [
+    {
+      "capability": "ingests-untrusted-content",
+      "note": "It returns repository content, which outsiders wrote only if the repository is untrusted. The sources name README files and issues as injection vectors in general, not as content this server returns."
+    },
+    {
+      "capability": "reads-private-data",
+      "note": "Depends on which repositories it is pointed at."
+    }
+  ],
+  "advisories": ["AVE-2026-0005"]
+}

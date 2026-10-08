@@ -4,6 +4,10 @@ advisory must hit the configurations it describes and nothing else. A new
 advisory that lights up `hardened-support-agent` is too broad and should not
 merge.
 
+Locks are scanned the way the CLI scans them, with the capability catalogue.
+`identities-only-emitter` states no capabilities at all and depends on it; its
+0003 match is POSSIBLE without the catalogue (see tests/test_catalogue.py).
+
     python -m unittest discover tests
 """
 
@@ -25,13 +29,16 @@ EXPECTED = {
     "ci-coding-agent-patched":      {"affected": set(), "possible": set()},
     "hosted-deep-research-today":   {"affected": set(), "possible": set()},
     "partial-lock-minimal-emitter": {"affected": set(), "possible": {"AVE-2026-0003", "AVE-2026-0004", "AVE-2026-0011"}},
+    "identities-only-emitter":      {"affected": {"AVE-2026-0003"}, "possible": set()},
 }
+
+CATALOGUE = audit.load_catalogue(ROOT / "catalogue")
 
 
 def scan(lock):
     got = {"affected": set(), "possible": set()}
     for adv in audit.load_registry(ROOT / "advisories"):
-        status, _, _ = audit.evaluate(adv, lock)
+        status, _, _ = audit.evaluate(adv, lock, CATALOGUE)
         if status:
             got[status].add(adv["id"])
     return got

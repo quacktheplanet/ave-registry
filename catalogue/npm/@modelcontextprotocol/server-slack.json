@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:npm/@modelcontextprotocol/server-slack",
+  "title": "Slack MCP server (reference implementation)",
+  "reviewed": "2026-10-08",
+  "summary": "Reviewed and nothing recorded. The sources behind AVE-2026-0004 describe an attacker posting in a public Slack channel that 'a Slack MCP server' then reads, but neither names a package, and the advisory does not either. This identity appears only in an illustrative example lock, so no claim can be tied to it from the cited sources. A source that names this package and its channel-reading tools would settle ingests-untrusted-content.",
+  "claims": [],
+  "unknown": [
+    {
+      "capability": "ingests-untrusted-content",
+      "note": "Shown for 'a Slack MCP server' reading a public channel (thehackernews.com, CurXecute); the package is not identified, so not recorded for this purl."
+    },
+    {
+      "capability": "reads-private-data",
+      "note": "Not discussed in the cited sources."
+    },
+    {
+      "capability": "external-egress",
+      "note": "Not discussed in the cited sources."
+    }
+  ],
+  "advisories": ["AVE-2026-0004"]
+}

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:npm/postmark-mcp",
+  "title": "postmark-mcp (unofficial, removed from npm)",
+  "reviewed": "2026-10-08",
+  "summary": "An unofficial copy of Postmark's MCP server; Postmark says it is not theirs. Every version sends email, which is egress. From 1.0.16 it also copies every outgoing email to a third party - that is a malicious change covered by AVE-2026-0016, not a capability, and is not recorded here.",
+  "claims": [
+    {
+      "capability": "external-egress",
+      "present": true,
+      "evidence": [
+        {
+          "url": "https://snyk.io/blog/malicious-mcp-server-on-npm-postmark-mcp-harvests-emails/",
+          "note": "An MCP server that enables AI agents to send emails through the Postmark service."
+        },
+        {
+          "url": "https://thehackernews.com/2025/09/first-malicious-mcp-server-found.html",
+          "note": "Exposes an MCP server to let users send emails, use templates and track campaigns through AI assistants."
+        }
+      ]
+    }
+  ],
+  "unknown": [
+    {
+      "capability": "ingests-untrusted-content",
+      "note": "The sources describe outbound operations only; nothing establishes either way whether it returns content outsiders write."
+    },
+    {
+      "capability": "reads-private-data",
+      "note": "It can list templates and delivery statistics; the sources do not establish whether that counts as private data."
+    }
+  ],
+  "advisories": ["AVE-2026-0016"]
+}

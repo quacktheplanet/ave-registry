@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:npm/@supabase/mcp-server-supabase",
+  "title": "Supabase MCP server",
+  "reviewed": "2026-10-08",
+  "summary": "Supabase's MCP server, as identified in AVE-2026-0002. Both established capabilities depend on configuration the lock records as grants: what the credential can read, and whether the server is in read-only mode.",
+  "claims": [
+    {
+      "capability": "reads-private-data",
+      "present": true,
+      "when": { "grants": { "credential": "service_role" } },
+      "evidence": [
+        {
+          "url": "https://simonwillison.net/2025/Jul/6/supabase-mcp-lethal-trifecta/",
+          "note": "Run with the service_role key, the server bypasses all row-level security; the write-up has it reading a private integration_tokens table."
+        }
+      ]
+    },
+    {
+      "capability": "external-egress",
+      "present": true,
+      "when": { "grants": { "readOnly": false } },
+      "evidence": [
+        {
+          "url": "https://simonwillison.net/2025/Jul/6/supabase-mcp-lethal-trifecta/",
+          "note": "With writes allowed, the agent inserts private data into a table the attacker can read (support_messages). The write-up names the database write as the leg that communicates data to the attacker."
+        }
+      ]
+    }
+  ],
+  "unknown": [
+    {
+      "capability": "ingests-untrusted-content",
+      "note": "True in the write-up only because the database held customer-submitted support messages. Whether a given database holds rows outsiders can write is deployment data that a lock does not record."
+    },
+    {
+      "capability": "reads-private-data",
+      "note": "Established only for the service_role credential. With a role subject to row-level security it depends on the policies, which the sources do not cover."
+    },
+    {
+      "capability": "external-egress",
+      "note": "With readOnly true the source says read-only mode removes the write channel used in the attack. It does not say no other egress channel remains, so read-only is left unknown rather than recorded as false."
+    }
+  ],
+  "advisories": ["AVE-2026-0002"]
+}

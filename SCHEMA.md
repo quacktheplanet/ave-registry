@@ -95,9 +95,8 @@ The first three together are the pattern behind most records in the registry. A
 capability describes what a tool *can* do as configured, not what it is meant for: a
 database tool with write access to a table an attacker can read has `external-egress`.
 
-**Capabilities cannot be emitted from a manifest.** They are a judgement and will need a
-maintained catalogue mapping tool identities to capabilities. That catalogue does not
-exist yet.
+**Capabilities cannot be emitted from a manifest.** They are a judgement, recorded per
+tool in the capability catalogue (below). A lock may still state them itself.
 
 ### Harness settings
 
@@ -110,6 +109,62 @@ An emitter maps the harness's native settings onto these keys.
 | `toolDefinitionPinning` | boolean | Whether a change to an approved tool's definition forces re-approval. |
 | `projectConfigTrust` | `prompt-before-load`, `load-then-prompt`, `auto` | How configuration supplied by an opened project is treated. |
 | `remoteContentRendering` | boolean | Whether agent output can make the client fetch attacker-chosen URLs. |
+
+## Capability catalogue
+
+`catalogue/` holds one file per tool, written against
+[`schema/capability-catalogue.schema.json`](schema/capability-catalogue.schema.json) and
+keyed by the same purl a lock records in a tool's `source`. The path follows the purl:
+`pkg:npm/@supabase/mcp-server-supabase` lives at
+`catalogue/npm/@supabase/mcp-server-supabase.json`.
+
+An entry is a list of **claims**. Each claim names one capability from the vocabulary
+above, says whether it is `present` (`true` or `false`), and carries at least one piece of
+public evidence: a URL and a note saying what the source shows. A claim may be narrowed:
+
+| Field | Meaning |
+| --- | --- |
+| `versions` | The tool versions the claim applies to, in the advisory range syntax. Omitted means every version. |
+| `when.grants` | The configuration the claim depends on, as matchers over the lock tool's `grants` — for example `{"readOnly": false}`. |
+
+Whether a claim applies is itself three-valued: a lock that does not record the version
+or grant a claim depends on leaves the claim **unknown**.
+
+### How audit uses it
+
+A lock's own `capabilities` list is a complete statement: what it lists is present,
+what it omits is absent. That is unchanged. When a tool has **no** `capabilities` field,
+each capability is resolved from the catalogue entry for its `source`:
+
+| Claims for the capability | Value |
+| --- | --- |
+| a `present: true` claim definitely applies | present |
+| otherwise, any claim's applicability is unknown | **unknown** |
+| otherwise, a `present: false` claim definitely applies | absent |
+| no claim applies, or the entry never mentions it | **unknown** |
+
+The consequences:
+
+- **An entry is not a complete list.** A capability the entry does not claim stays
+  unknown, never absent. The catalogue can clear a match only through an explicit
+  `present: false` claim whose versions and conditions the lock records.
+- **The lock wins.** Where a lock states a list, the catalogue never changes it.
+  Disagreements are reported (`--explain`, and a note in the normal output) and the lock's
+  value is used.
+- **It only resolves a MAYBE.** Resolution replaces unknowns and nothing else, so a
+  result the lock already decides — affected or clear — cannot change. Matches that the
+  catalogue decided are marked `[via catalogue]`, and `viaCatalogue` in `--json`.
+- **No identity, no lookup.** A tool without `source` is never looked up, even if its
+  `name` matches a catalogued package.
+- **Capabilities, not vulnerabilities.** Code execution reachable only through a bug in
+  some versions belongs in an advisory. The catalogue records what a tool does when it
+  works as intended.
+
+A lock cannot yet say "these capabilities, and I don't know about the rest" for a single
+tool: the list is all or nothing. If an emitter turns out to need partial statements,
+that is a lock-format addition.
+
+`--no-catalogue` matches on lock-stated capabilities only.
 
 ## Conventions
 

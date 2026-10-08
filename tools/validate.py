@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Validate every advisory and example lockfile against the schemas, and enforce
-the registry rules a JSON Schema cannot express.
+Validate every advisory, capability catalogue entry and example lockfile
+against the schemas, and enforce the registry rules a JSON Schema cannot
+express.
 
     pip install jsonschema
     python tools/validate.py
@@ -23,9 +24,66 @@ def load(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def rel(path: Path):
+    return path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+
+
 def check(validator, path: Path, doc) -> list[str]:
-    return [f"{path.relative_to(ROOT)}: {'/'.join(map(str, e.path)) or '<root>'}: {e.message}"
+    return [f"{rel(path)}: {'/'.join(map(str, e.path)) or '<root>'}: {e.message}"
             for e in validator.iter_errors(doc)]
+
+
+def check_catalogue(paths, advisory_ids, catalogue_dir: Path = ROOT / "catalogue") -> list[str]:
+    """Catalogue rules beyond the schema. A wrong capability claim is worse
+    than a missing one, so every claim must carry evidence, use only the lock
+    vocabulary, and not contradict another claim in the same entry."""
+    import audit
+    schema = load(ROOT / "schema" / "capability-catalogue.schema.json")
+    lock_schema = load(ROOT / "schema" / "agent-lock.schema.json")
+    vocabulary = lock_schema["$defs"]["capability"]["enum"]
+    errors = []
+    # The catalogue may not drift from the vocabulary advisories and locks use.
+    if schema["$defs"]["capability"]["enum"] != vocabulary:
+        errors.append("schema/capability-catalogue.schema.json: capability enum differs from agent-lock.schema.json")
+    if list(audit.CAPABILITIES) != vocabulary:
+        errors.append("tools/audit.py: CAPABILITIES differs from agent-lock.schema.json")
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    sources = {}
+    for path in paths:
+        name = rel(path)
+        doc = load(path)
+        errors += check(validator, path, doc)
+        source = doc.get("source", "")
+        # Identity is the purl, and the file lives where the purl says.
+        expected = audit.catalogue_path(source)
+        if expected != path.relative_to(catalogue_dir).as_posix():
+            errors.append(f"{name}: file should be catalogue/{expected} for source {source}")
+        if source.lower() in sources:
+            errors.append(f"{name}: duplicate source, also in {sources[source.lower()]}")
+        sources[source.lower()] = name
+        claims = doc.get("claims", [])
+        for i, claim in enumerate(claims):
+            if claim.get("capability") not in vocabulary:
+                errors.append(f"{name}: claims/{i}: '{claim.get('capability')}' is not in the capability vocabulary")
+            if not claim.get("evidence"):
+                errors.append(f"{name}: claims/{i}: a claim needs evidence")
+            # Two claims with the same scope may not disagree.
+            for j, other in enumerate(claims[:i]):
+                if (other.get("capability") == claim.get("capability")
+                        and other.get("present") != claim.get("present")
+                        and other.get("versions") == claim.get("versions")
+                        and other.get("when") == claim.get("when")):
+                    errors.append(f"{name}: claims/{i} contradicts claims/{j}")
+        unconditional = {c.get("capability") for c in claims if "versions" not in c and "when" not in c}
+        for i, item in enumerate(doc.get("unknown", [])):
+            if item.get("capability") not in vocabulary:
+                errors.append(f"{name}: unknown/{i}: '{item.get('capability')}' is not in the capability vocabulary")
+            if item.get("capability") in unconditional:
+                errors.append(f"{name}: unknown/{i}: {item.get('capability')} is also claimed for every version and configuration")
+        for ave in doc.get("advisories", []):
+            if ave not in advisory_ids:
+                errors.append(f"{name}: advisories: {ave} does not exist")
+    return errors
 
 
 def main() -> int:
@@ -45,6 +103,9 @@ def main() -> int:
         if doc.get("id") in seen:
             errors.append(f"{path.relative_to(ROOT)}: duplicate id, also in {seen[doc['id']]}")
         seen[doc.get("id")] = path.name
+
+    entries = sorted((ROOT / "catalogue").rglob("*.json"))
+    errors += check_catalogue(entries, set(seen))
 
     locks = sorted((ROOT / "examples" / "locks").glob("*.json"))
     for path in locks:
@@ -93,7 +154,7 @@ def main() -> int:
 
     for e in errors:
         print(f"ERROR  {e}")
-    print(f"{len(advisories)} advisories, {len(locks)} example locks, "
+    print(f"{len(advisories)} advisories, {len(entries)} catalogue entries, {len(locks)} example locks, "
           f"{len(results)} results, {len(expected)} OSV records, {len(errors)} error(s).")
     return 1 if errors else 0
 

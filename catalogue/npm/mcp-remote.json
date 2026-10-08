@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "source": "pkg:npm/mcp-remote",
+  "title": "mcp-remote",
+  "reviewed": "2026-10-08",
+  "summary": "A proxy that lets a local MCP client talk to a remote MCP server. The tools an agent gets through it are the remote server's, so its capabilities cannot be assigned from this package's identity at all; they belong to whatever it connects to. Recorded with no claims on purpose. The command execution in AVE-2026-0014 is a flaw in some versions, not a capability, and lives in that advisory.",
+  "claims": [],
+  "unknown": [
+    {
+      "capability": "ingests-untrusted-content",
+      "note": "Depends entirely on the remote server being proxied."
+    },
+    {
+      "capability": "reads-private-data",
+      "note": "Depends entirely on the remote server being proxied."
+    },
+    {
+      "capability": "external-egress",
+      "note": "Depends entirely on the remote server being proxied."
+    }
+  ],
+  "advisories": ["AVE-2026-0014"]
+}

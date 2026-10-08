@@ -31,6 +31,10 @@ a minute, with nothing leaving your machine.
   ingredients label).
 - **Advisories** — each one a predicate over lockfiles, so whether you're affected is
   decided mechanically rather than by reading a blog post (the dangerous recipes).
+- **Capability catalogue** — what each tool can *do* (read untrusted content, reach
+  private data, send data out), recorded per tool with a public source for every claim,
+  so a lock that names its tools doesn't have to state their capabilities by hand. Just
+  started: eight tools, most of their capabilities still unknown.
 - **`audit.py`** — joins the two, locally. Nothing about your configuration leaves your
   machine.
 
@@ -130,15 +134,20 @@ python -m unittest discover tests
 `audit.py` needs only the Python standard library. There's no lockfile emitter yet; until
 there is, locks are written by hand against
 [`schema/agent-lock.schema.json`](schema/agent-lock.schema.json), and the files in
-`examples/locks/` are illustrative, not real deployments.
+`examples/locks/` are illustrative, not real deployments. A lock may leave out a tool's
+capabilities: `audit.py` fills them from `catalogue/` by the tool's `source` and version,
+anything the catalogue doesn't establish stays MAYBE, and a lock's own statement always
+wins (`--no-catalogue` turns this off).
 
 ## Layout
 
 ```
-schema/           JSON Schema for agent.lock, advisories, and benchmark results
+schema/           JSON Schema for agent.lock, advisories, catalogue entries, benchmark results
 advisories/       the registry, one file per AVE id
-examples/locks/   sample lockfiles: vulnerable, hardened, patched, hosted, under-specified
-tools/            audit.py (matcher), validate.py (schema + rules), osv_export.py (OSV bridge)
+catalogue/        tool capabilities, one file per tool purl, every claim with its source
+examples/locks/   sample lockfiles: vulnerable, hardened, patched, hosted, under-specified,
+                  and one that names its tools but states no capabilities
+tools/            audit.py (matcher + catalogue), validate.py (schema + rules), osv_export.py (OSV bridge)
 tests/            the expected-match matrix; doubles as the specificity test
 interop/osv/      every advisory OSV can express, as valid OSV records
 benchmark/        model-susceptibility track: spec, suite design, harness, results
@@ -149,8 +158,8 @@ ALTERNATIVES.md   the cheaper answers, how they were tested, what would make us 
 
 ## What happens next
 
-[ROADMAP.md](ROADMAP.md) lays out the destination and the five pieces it needs. Two don't
-fully exist yet — a tool capability catalogue, and model-susceptibility data across more
+[ROADMAP.md](ROADMAP.md) lays out the destination and the five pieces it needs. Two are
+only started — the tool capability catalogue, and model-susceptibility data across more
 models — and they're the substance. On the benchmark, the next step is running `canary-v3`
 across quantizations and then lineages (official vs community fine-tune vs abliterated),
 the comparison that was the point.

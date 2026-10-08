@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave-registry.example/schema/capability-catalogue.schema.json",
+  "title": "AVE capability catalogue entry",
+  "description": "What one tool, identified by its purl, can do - recorded as individual claims, each with public evidence. A capability the entry does not claim is unknown, never absent. See SCHEMA.md, 'Capability catalogue'.",
+  "type": "object",
+  "required": ["schemaVersion", "source", "title", "reviewed", "claims"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "source": {
+      "type": "string",
+      "pattern": "^pkg:[a-z]+/.+$",
+      "description": "The tool's identity: the same purl a lock records in a tool's `source`. The file lives at catalogue/<type>/<namespace>/<name>.json."
+    },
+    "title": { "type": "string", "maxLength": 120 },
+    "reviewed": { "type": "string", "format": "date", "description": "When the claims were last checked against their evidence." },
+    "summary": { "type": "string", "description": "What the tool is, and anything a reader needs before trusting the claims." },
+
+    "claims": {
+      "type": "array",
+      "description": "May be empty: an entry whose sources established nothing still records that the tool was reviewed, and why each capability stayed unknown.",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "unknown": {
+      "type": "array",
+      "description": "Capabilities the reviewer considered and could not establish, with the reason. Informational: the matcher treats them exactly like capabilities the entry never mentions.",
+      "items": {
+        "type": "object",
+        "required": ["capability", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "capability": { "$ref": "#/$defs/capability" },
+          "note": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "advisories": {
+      "type": "array",
+      "description": "AVE ids whose conditions or references concern this tool.",
+      "items": { "type": "string", "pattern": "^AVE-[0-9]{4}-[0-9]{4,}$" }
+    }
+  },
+
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "required": ["capability", "present", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "capability": { "$ref": "#/$defs/capability" },
+        "present": {
+          "type": "boolean",
+          "description": "true: the tool has the capability wherever this claim applies. false: it definitely does not - the only way a catalogue entry can clear a match, so it needs the strongest evidence."
+        },
+        "versions": {
+          "$ref": "#/$defs/versionRanges",
+          "description": "The tool versions this claim applies to. Omitted means every version."
+        },
+        "when": {
+          "type": "object",
+          "description": "The configuration this claim depends on, tested against the lock's tool entry. A field the lock does not record leaves the claim unknown.",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "grants": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/matcher" } }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["url", "note"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "note": { "type": "string", "minLength": 1, "description": "What the source says that supports the claim. Paraphrase or short quote; never a payload." }
+            }
+          }
+        }
+      }
+    },
+
+    "capability": {
+      "description": "Must equal the lock schema's capability vocabulary; tools/validate.py checks the two lists are identical.",
+      "enum": [
+        "ingests-untrusted-content",
+        "reads-private-data",
+        "external-egress",
+        "code-execution",
+        "writes-filesystem",
+        "writes-agent-config"
+      ]
+    },
+
+    "versionRanges": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^((>=|<=|>|<|=)[0-9A-Za-z.\\-+]+)( (>=|<=|>|<|=)[0-9A-Za-z.\\-+]+)*$" }
+    },
+
+    "matcher": {
+      "oneOf": [
+        { "type": ["string", "number", "boolean"] },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "in": { "type": "array", "minItems": 1 },
+            "not": { "type": ["string", "number", "boolean"] },
+            "minCount": { "type": "integer", "minimum": 0 },
+            "exists": { "type": "boolean" }
+          }
+        }
+      ]
+    }
+  }
+}
