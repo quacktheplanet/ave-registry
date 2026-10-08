@@ -35,6 +35,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -67,10 +68,17 @@ def start_server(llama_bin: Path, model_path: Path, port: int, ngl: int, ctx: in
         exe = llama_bin / "llama-server"
     cmd = [str(exe), "-m", str(model_path), "--port", str(port), "--host", "127.0.0.1",
            "-ngl", str(ngl), "-c", str(ctx), "--jinja", "--no-warmup", "-t", "8", *extra]
-    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # The server's own log goes to a file, so a failed start can say why
+    # (out of GPU memory, port taken, unsupported model, ...).
+    log = tempfile.NamedTemporaryFile("w+", prefix="llama-server-", suffix=".log", delete=False)
+    proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+    proc.log_path = log.name
     for _ in range(240):
         if proc.poll() is not None:
-            raise RuntimeError(f"llama-server exited early (code {proc.returncode})")
+            log.seek(0)
+            tail = "".join(log.readlines()[-12:])
+            raise RuntimeError(f"llama-server exited early (code {proc.returncode}); its log "
+                               f"({log.name}) ends:\n{tail}")
         try:
             with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=2) as r:
                 if r.status == 200:
@@ -88,6 +96,12 @@ def stop_server(proc):
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.wait(timeout=10)
+    log = getattr(proc, "log_path", None)
+    if log:
+        try:
+            Path(log).unlink()
+        except OSError:
+            pass
 
 
 # Extra request fields for every chat call; run.py --deterministic sets
