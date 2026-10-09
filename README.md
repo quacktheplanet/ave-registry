@@ -61,8 +61,9 @@ and the mistakes are this project's.
 
 ## What phase 0 found
 
-Twenty-one published findings were written up as advisories to test whether the idea
-holds:
+Twenty-one published findings were examined to test whether the idea holds. Twenty became
+advisories; the twenty-first (MCP Inspector) is a developer tool that never appears in an
+agent configuration, so it was out of scope:
 
 - **It holds, more narrowly than pitched.** 3 of 21 are configuration-native — no fix
   exists, no CVE was ever assigned, and AVE is the only way to express them. 6 more gain
